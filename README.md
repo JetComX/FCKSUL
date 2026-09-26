@@ -9,6 +9,24 @@ English | 中文
 
 English
 
+Index
+
+· Introduction
+· Features
+· Requirements
+· Installation & Usage
+· Usage Guide
+· Whitelist Management
+· Files
+· Logs
+· How It Works
+· FAQ
+· Notes
+· License
+· Feedback
+
+---
+
 Introduction
 
 FCKSUL is a pure Shell-based time-limiting tool for Android. After setting a time range (e.g., 06:00 - 13:00), any non-whitelisted app will be force-closed within 1~2 seconds after coming to the foreground. When the time range ends, the monitoring process exits automatically without leaving any background process.
@@ -262,6 +280,24 @@ Github Issues: https://github.com/JetComX/FCKSUL/issues
 ---
 
 中文
+
+目录
+
+· 项目简介
+· 功能特性
+· 环境要求
+· 安装与运行
+· 使用指南
+· 白名单管理
+· 文件说明
+· 日志说明
+· 工作原理
+· 常见问题
+· 注意事项
+· 开源协议
+· 反馈
+
+---
 
 项目简介
 
