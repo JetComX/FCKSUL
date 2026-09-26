@@ -1,10 +1,8 @@
 FCKSUL
 
-一个基于 Android Shell 的应用限时管理工具。设定时间段后，所有非白名单应用在前台存活 1~2 秒内被强制退出；时段结束自动退出，不留后台进程。
+去他妈的熬夜玩手机
 
-https://img.shields.io/badge/license-Apache--2.0-blue.svg
-https://img.shields.io/badge/platform-Android%207.0%2B-green.svg
-https://img.shields.io/badge/shell-sh-orange.svg
+一个基于 Android Shell 的应用限时管理工具。设定时间段后，所有非白名单应用在前台存活 1~2 秒内被强制退出；时段结束自动退出，不留后台进程。
 
 ---
 
