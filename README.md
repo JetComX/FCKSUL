@@ -1,10 +1,267 @@
 FCKSUL
 
+Don't fucking stay up late playing on your phone.
 去他妈的熬夜玩手机
 
-一个基于 Android Shell 的应用限时管理工具。设定时间段后，所有非白名单应用在前台存活 1~2 秒内被强制退出；时段结束自动退出，不留后台进程。
+English | 中文
 
 ---
+
+English
+
+Introduction
+
+FCKSUL is a pure Shell-based time-limiting tool for Android. After setting a time range (e.g., 06:00 - 13:00), any non-whitelisted app will be force-closed within 1~2 seconds after coming to the foreground. When the time range ends, the monitoring process exits automatically without leaving any background process.
+
+Typical scenarios
+
+· Force block entertainment apps during study/work
+· Set "usage hours" for kids' devices
+· Temporarily disable device during exams
+· Self-discipline, quit phone addiction
+
+Features
+
+· Auto root elevation: runs with normal privileges, automatically detects and invokes su
+· 24-hour time range: accurate to the minute, format HH:MM
+· Cross-day range support: e.g., 22:00 - 06:00 also works
+· One-shot task: exits automatically when time range ends, no background resource usage
+· Millisecond-level response: checks foreground app every 2 seconds
+· Triple anti-duplication: PID file + full-system scan + identity verification
+· Command timeout protection: all external commands wrapped with timeout to avoid hangs
+· Independent session: uses setsid to detach from menu process
+· Detailed logs: entry/exit of time range, detection, exit, heartbeat all recorded
+· Graceful exit: deletes PID file then exits when time range ends, resources fully released
+· Whitelist management: supports user-defined whitelist, package name queries app info
+· Built-in diagnostics: one-click view of foreground app, running processes, debug logs
+
+Requirements
+
+· System: Android 7.0+ (tested on Android 16)
+· Permission: Root required
+· Shell: sh (no bash dependency)
+· Required commands: timeout, setsid, pgrep (or ps), dumpsys, am
+· Storage: script directory must be writable
+
+Recommended environments: Termux, MT Manager terminal, ADB Shell, or any terminal app that supports su.
+
+Installation & Usage
+
+1. Save the script to a fixed directory:
+
+```bash
+# e.g.
+/storage/emulated/0/AppLock/applock.sh
+```
+
+2. Make it executable:
+
+```bash
+chmod +x /storage/emulated/0/AppLock/applock.sh
+```
+
+3. Run:
+
+```bash
+sh /storage/emulated/0/AppLock/applock.sh
+```
+
+On first run, it will prompt for root elevation; allow it.
+
+Usage Guide
+
+Main menu:
+
+```text
+╔═════════════════════╗
+║       FCKSUL        ║
+║     Version: v1.0   ║
+╠═════════════════════╣
+║  1. Set time range  ║
+║  2. View status     ║
+║  3. Whitelist       ║
+║  4. Diagnostics     ║
+║  5. How to use?     ║
+║  6. Exit            ║
+╚═════════════════════╝
+```
+
+Menu items:
+
+· 1. Set time range: input start/end time, auto-start monitoring after saving
+· 2. View status: show current config, running state, monitor PID
+· 3. Whitelist: view/add/delete whitelist apps
+· 4. Diagnostics: view foreground app, dumpsys output, process scan, debug logs
+· 5. How to use?: display usage instructions
+· 6. Exit: clean up all related processes then exit (including child processes, su parent)
+
+Typical workflow:
+
+1. Run script, enter main menu
+2. Select 1, enter 06:00 and 13:00, confirm
+3. "Settings saved! Monitoring started" appears
+4. Select 6 to exit, monitoring continues in background
+5. During the range, opening any non-whitelisted app will be force-closed within 1~2 seconds
+6. At 13:00, monitoring exits automatically
+
+Whitelist Management
+
+Built-in whitelist (cannot be deleted)
+
+· com.android.systemui (system UI, killing it causes black screen)
+· com.android.launcher* (launcher, killing it makes home unreachable)
+
+User whitelist
+Stored in fcksul.whitelist in the same directory as the script, one package name per line, supports * wildcard. Manage via menu 3.
+
+Example add flow:
+
+```text
+[?] Enter package name (e.g. com.tencent.mm): com.tencent.mm
+
+───────────────────────────────────────
+              App Info
+───────────────────────────────────────
+[*] Package: com.tencent.mm
+[*] App name: WeChat
+[*] APK path: /data/app/.../base.apk
+[*] Version: 8.0.42
+[*] Type: Third-party app
+[*] Entry: com.tencent.mm/.ui.LauncherUI
+───────────────────────────────────────
+[?] Add to whitelist? (y/n):
+```
+
+After adding, the app can be used normally during the restricted time range. Effect comparison:
+
+App In whitelist Not in whitelist
+Built-in systemui/launcher Allowed —
+User-added packages Allowed —
+All other apps — Force-closed within 1~2s
+
+Files
+
+The script generates in its own directory:
+
+File Description Lifecycle
+fcksul.conf Time range config Persistent
+fcksul.whitelist User whitelist Persistent
+fcksul.log Runtime log Auto-rotates after 1MB
+fcksul.debug.log Debug log (stderr) Cleared on each start
+fcksul.pid Monitor process PID Deleted on process exit
+
+Config file format:
+
+```text
+START_TIME=06:00
+END_TIME=13:00
+```
+
+Whitelist file format:
+
+```text
+com.tencent.mm
+com.tencent.mobileqq
+com.tencent.tim
+```
+
+Logs
+
+Log levels: [I] INFO, [D] DEBUG, [E] ERROR.
+
+Log example:
+
+```text
+[2026-09-25 08:10:22] [I] Monitor loop started (pid=32486)
+[2026-09-25 08:10:22] [I] Restricted range: 08:10 - 08:11
+[2026-09-25 08:10:23] [I] [Detected] bin.mt.plus (now 08:10:22)
+[2026-09-25 08:10:23] [D]   -> am force-stop bin.mt.plus
+[2026-09-25 08:10:24] [I] [Exited] bin.mt.plus  (08:10:23 -> 08:10:24)
+[2026-09-25 08:11:02] [I] Task completed, monitor process exiting
+```
+
+Key log words:
+
+· Entered restricted range: start time reached
+· Left restricted range: end time reached
+· [Detected] xxx: foreground app detected
+· [Exited] xxx: force-closed successfully
+· [Failed] xxx: first attempt failed, kill -9 appended
+· [Whitelist skip] xxx: whitelist app, skipped
+· [Heartbeat] Monitor running: every 60 seconds to prove script alive
+· [Warning] Loop took: a loop took >8 seconds, possible hang
+
+View methods: menu 4 diagnostics shows last 10 lines; or tail -f fcksul.log; or adb logcat -s FCKSUL.
+
+How It Works
+
+Core loop: read config → check if in time range → get foreground app (dumpsys) → check whitelist → if not, am force-stop + kill -9 → recheck after 1s → loop.
+
+Foreground app detection (three methods tried in order):
+
+1. dumpsys activity activities | grep mResumedActivity
+2. dumpsys window | grep mCurrentFocus
+3. dumpsys activity top | grep ACTIVITY
+
+Force close (triple kill):
+
+1. am force-stop <pkg> (official stop)
+2. pidof <pkg> | kill -9 (kill residual process)
+3. ps -A | grep <pkg> | kill -9 (fallback)
+
+Triple anti-duplication: PID file + identity verification, full-system scan, parent process cleans up before start. Guarantees at most one monitor process at any time.
+
+Independent session: monitor process started via setsid, detached from menu process. Menu exit won't cause monitor to be killed by SIGHUP.
+
+FAQ
+
+Q1: Why "monitor not started"?
+A: Check: today's end time has passed (monitor exits immediately, by design); or startup exception, view debug log via menu 4.
+
+Q2: An app won't be killed?
+A: Log will show [Failed] xxx, script automatically appends kill -9. If still failing, the app may be a system component or have self-starting service. Suggest disabling its auto-start in system settings, or restrict background behavior in developer options.
+
+Q3: Does monitoring still work after screen lock?
+A: Depends on whether system kills background processes. Heartbeat means process alive; missing heartbeat means killed by system, need keep-alive (add to whitelist, disable sleep standby optimization, or use Magisk watchdog).
+
+Q4: How to allow an app during restricted time?
+A: Menu 3 → Add to whitelist → enter package name → confirm. The app will not be force-closed during restricted time.
+
+Q5: What processes are cleaned when exiting via menu 6?
+A: Monitor process from PID file, full-system --monitor scan results, all processes whose command line contains script path, su/magisk/ksud parent process (only if parent is one of these). Terminal shell will not be killed to avoid closing your terminal session.
+
+Notes
+
+Whitelist scope
+Built-in whitelist only has com.android.systemui and com.android.launcher*. During restricted time, system settings, phone, camera, gallery, clock, SMS, Google services, etc. will be force-closed. To keep some apps, add them to whitelist via menu 3.
+
+Data safety
+Force close (am force-stop) causes apps to lose unsaved temporary state. Do not edit documents or draft chats during restricted time, use important apps with caution.
+
+Compatibility
+dumpsys output format varies by Android version and vendor ROM. If "foreground package" in menu 4 is always empty, please provide diagnostic output for adaptation.
+
+Whitelist wildcard
+fcksul.whitelist supports * wildcard, but use with caution (e.g., com.tencent.* will allow all Tencent apps like WeChat, QQ, TIM).
+
+License
+
+This project is open source under Apache License 2.0. Free to use, modify and distribute. See LICENSE for details.
+
+Feedback
+
+When reporting issues, please provide:
+
+1. Complete log (fcksul.log last 50 lines)
+2. Menu 4 diagnostic output
+3. Device model + Android version
+4. Specific symptoms
+
+Github Issues: https://github.com/JetComX/FCKSUL/issues
+
+---
+
+中文
 
 项目简介
 
@@ -16,8 +273,6 @@ FCKSUL 是一个纯 Shell 实现的 Android 应用限时工具。用户设置一
 · 给孩子设备设置"使用时段"
 · 考试期间临时禁用设备
 · 自我管理、戒除手机依赖
-
----
 
 功能特性
 
@@ -34,8 +289,6 @@ FCKSUL 是一个纯 Shell 实现的 Android 应用限时工具。用户设置一
 · 白名单管理：支持用户自定义白名单，包名查询应用信息
 · 内置诊断：一键查看前台应用、运行进程、调试日志
 
----
-
 环境要求
 
 · 系统：Android 7.0+（实测 Android 16 可用）
@@ -45,8 +298,6 @@ FCKSUL 是一个纯 Shell 实现的 Android 应用限时工具。用户设置一
 · 存储：脚本所在目录需可写
 
 推荐运行环境：Termux、MT 管理器终端、ADB Shell，或任何支持 su 的终端 App。
-
----
 
 安装与运行
 
@@ -70,8 +321,6 @@ sh /storage/emulated/0/AppLock/applock.sh
 ```
 
 首次运行时会提示 Root 提权，允许即可。
-
----
 
 使用指南
 
@@ -109,8 +358,6 @@ sh /storage/emulated/0/AppLock/applock.sh
 5. 时段内打开任意非白名单应用，1~2 秒内被强退
 6. 13:00 到，监控自动退出
 
----
-
 白名单管理
 
 内置白名单（不可删除）
@@ -147,8 +394,6 @@ sh /storage/emulated/0/AppLock/applock.sh
 用户添加的包 放过 —
 其他所有应用 — 1~2 秒内强退
 
----
-
 文件说明
 
 脚本运行后会在脚本所在目录生成：
@@ -174,8 +419,6 @@ com.tencent.mm
 com.tencent.mobileqq
 com.tencent.tim
 ```
-
----
 
 日志说明
 
@@ -205,8 +448,6 @@ com.tencent.tim
 
 查看方式：菜单 4 诊断查看最后 10 行；或直接 tail -f fcksul.log；或 adb logcat -s FCKSUL。
 
----
-
 工作原理
 
 核心循环：读取配置 → 判断是否在时段内 → 获取前台应用（dumpsys）→ 判断是否在白名单 → 不在则 am force-stop + kill -9 → 1 秒后复查 → 循环。
@@ -227,8 +468,6 @@ com.tencent.tim
 
 独立会话：监控进程通过 setsid 启动，脱离菜单进程，菜单退出不会导致监控被 SIGHUP 杀掉。
 
----
-
 常见问题
 
 Q1：为什么提示"监控未启动"？
@@ -246,8 +485,6 @@ A：菜单 3 → 添加白名单 → 输入包名 → 确认。之后该应用�
 Q5：菜单 6 退出时都清理了哪些进程？
 A：PID 文件记录的监控进程、全系统 --monitor 扫描结果、命令行含脚本路径的所有进程、su / magisk / ksud 父进程（仅当父进程是这几类时）。不会杀终端 shell，避免误关你的终端会话。
 
----
-
 注意事项
 
 白名单影响范围
@@ -262,13 +499,9 @@ dumpsys 输出格式随 Android 版本和厂商 ROM 变化。若菜单 4 的"前
 白名单通配符
 fcksul.whitelist 支持 * 通配，但需谨慎使用（如 com.tencent.* 会放过微信、QQ、TIM 等所有腾讯应用）。
 
----
-
 开源协议
 
 本项目基于 Apache License 2.0 开源，可自由使用、修改和分发。详见 LICENSE。
-
----
 
 反馈
 
